@@ -1,0 +1,6 @@
+Trade Date,Weekly,Tenor_Monthly,Tenor_Days,Tenor_Trade_Days,Expiry,Open,High,Low,Close,Settle,Change,Total Volume,EFP,Open Interest,Year,MonthOfYear,Futures,File,Expired
+2022-07-19,True,2.0,15,11.0,2022-08-03,26.8,26.8,26.3,26.8,26.35,-0.775,1,0,1,2022,8,Q (Aug 2022),2022-08-03.w_.CFE_VX_2022.csv,True
+2022-07-22,True,1.0,12,8.0,2022-08-03,25.6,25.6,24.85,25.05,25.05,0.025,4,0,1,2022,8,Q (Aug 2022),2022-08-03.w_.CFE_VX_2022.csv,True
+2022-07-27,True,1.0,7,5.0,2022-08-03,24.6,24.6,23.45,23.45,24.35,-1.15,20,0,15,2022,8,Q (Aug 2022),2022-08-03.w_.CFE_VX_2022.csv,True
+2022-08-02,True,1.0,1,1.0,2022-08-03,23.95,24.35,23.15,23.95,24.05,0.775,24,0,39,2022,8,Q (Aug 2022),2022-08-03.w_.CFE_VX_2022.csv,True
+2022-08-03,True,1.0,0,0.0,2022-08-03,,,,22.74,22.74,-1.31,0,0,39,2022,8,Q (Aug 2022),2022-08-03.w_.CFE_VX_2022.csv,True
