@@ -1,0 +1,2 @@
+Trade Date,Weekly,Tenor_Monthly,Tenor_Days,Tenor_Trade_Days,Expiry,Open,High,Low,Close,Settle,Change,Total Volume,EFP,Open Interest,Year,MonthOfYear,Futures,File,Expired
+2024-10-09,True,2.0,35,25.0,2024-11-13,19.25,20.0,19.25,19.25,18.5,-1.125,1,0,0,2024,11,X (Nov 2024),2024-11-13.w_.CFE_VX_2024.csv,True

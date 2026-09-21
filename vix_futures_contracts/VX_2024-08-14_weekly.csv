@@ -1,0 +1,5 @@
+Trade Date,Weekly,Tenor_Monthly,Tenor_Days,Tenor_Trade_Days,Expiry,Open,High,Low,Close,Settle,Change,Total Volume,EFP,Open Interest,Year,MonthOfYear,Futures,File,Expired
+2024-07-30,True,1.0,15,11.0,2024-08-14,16.3,16.45,16.25,16.45,16.2,0.4,2,0,1,2024,8,Q (Aug 2024),2024-08-14.w_.CFE_VX_2024.csv,True
+2024-08-01,True,1.0,13,9.0,2024-08-14,16.3,17.25,16.3,16.3,17.5,1.95,1,0,2,2024,8,Q (Aug 2024),2024-08-14.w_.CFE_VX_2024.csv,True
+2024-08-02,True,1.0,12,8.0,2024-08-14,19.05,21.85,19.05,21.8,21.275,3.775,3,0,5,2024,8,Q (Aug 2024),2024-08-14.w_.CFE_VX_2024.csv,True
+2024-08-14,True,1.0,0,0.0,2024-08-14,,,,17.45,17.45,-0.0952,0,0,5,2024,8,Q (Aug 2024),2024-08-14.w_.CFE_VX_2024.csv,True
