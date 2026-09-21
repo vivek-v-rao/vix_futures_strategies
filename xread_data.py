@@ -41,24 +41,39 @@ def contract_symbol(expiry: pd.Timestamp) -> str:
     """CBOE symbol of the VIX future expiring in that month, such as VXU26 for September 2026."""
     return f"VX{MONTH_CODES[expiry.month - 1]}{expiry.year % 100:02d}"
 
+def trading_calendar(dates) -> pd.DatetimeIndex:
+    """The trade dates in the data, extended with later CFE trading days so that contracts expiring
+    after the last trade date still have a trading day count."""
+    from vix_utils.download_vix_futures import valid_days
+
+    data_dates = pd.DatetimeIndex(sorted(dates))
+    cfe = pd.DatetimeIndex(sorted(pd.DatetimeIndex(valid_days.index).tz_localize(None)))
+    return data_dates.append(cfe[cfe > data_dates.max()]).unique().sort_values()
+
 def add_returns(df: pd.DataFrame, log_returns: bool = False) -> pd.DataFrame:
     """Add daily close-to-close returns and trading days until each contract's last close.
 
-    The trading calendar is the set of all trade dates in df. A return is only computed when the
-    contract's previous close was on the previous trading day, so gaps in a contract's history
-    do not produce multi-day returns. Days_To_Last_Close is 0 on the day of the last close.
-    Day_Number numbers the trading days of the calendar 0, 1, 2, ...
-    Only contracts that have expired are used, so the last close is final.
-    """
-    df = df.sort_values(["Expiry", "Trade Date"])
-    df = df[expired_rows(df)].copy()
+    The trading calendar is every trade date in df, extended with the exchange's later trading days.
+    A return is only computed when the contract's previous close was on the previous trading day, so
+    gaps in a contract's history do not produce multi-day returns. Days_To_Last_Close is 0 on the day
+    of the last close. Day_Number numbers the trading days of the calendar 0, 1, 2, ...
 
-    calendar = pd.Series(sorted(df["Trade Date"].unique()))
-    day_number = pd.Series(calendar.index, index=calendar.values)
+    A contract that has settled is counted to its final close, which is known. One still trading is
+    counted to its expiry, which is fixed by exchange rule and published years ahead. Waiting for a
+    contract to settle instead used to cut the end off every backtest, one expiry for each tenor held,
+    so a strip of the fourth to seventh contracts stopped seven months before the data did and the
+    carry it reported as current was half a year old.
+    """
+    df = df.sort_values(["Expiry", "Trade Date"]).copy()
+
+    calendar = trading_calendar(df["Trade Date"])
+    day_number = pd.Series(range(len(calendar)), index=calendar)
     df["Day_Number"] = df["Trade Date"].map(day_number)
 
     g = df.groupby("Expiry")
-    df["Days_To_Last_Close"] = g["Day_Number"].transform("max") - df["Day_Number"]
+    settled = expired_rows(df)
+    df["Days_To_Last_Close"] = (g["Day_Number"].transform("max")
+                                .where(settled, df["Expiry"].map(day_number)) - df["Day_Number"])
     prev_close = g["Close"].shift(1)
     consecutive = (df["Day_Number"] - g["Day_Number"].shift(1)) == 1
     ratio = df["Close"] / prev_close

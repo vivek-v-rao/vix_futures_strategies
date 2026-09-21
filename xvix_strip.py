@@ -198,8 +198,15 @@ def read_prices(path, column="Adj Close") -> pd.Series:
 
 def returns_on(prices: pd.Series, dates) -> pd.Series:
     """Returns between consecutive dates, using the last price on or before each one, so they cover
-    the same intervals as the futures returns even when the two markets keep different holidays."""
-    return prices.reindex(prices.index.union(dates)).ffill().reindex(dates).pct_change()
+    the same intervals as the futures returns even when the two markets keep different holidays.
+
+    The fill stops where the prices do. Carrying the last price past the end of a stale file does not
+    show up as missing data but as a run of days on which the market did not move, and those days sit
+    in the betas and the overlays as if they were real. Missing is the truth, and the join drops it.
+    """
+    wanted = pd.DatetimeIndex(dates)
+    filled = prices.reindex(prices.index.union(wanted)).ffill().reindex(wanted)
+    return filled.where(wanted <= prices.index.max()).pct_change(fill_method=None)
 
 def rate_returns(path, dates) -> pd.Series:
     """Daily risk-free returns from a csv of 13 week Treasury bill yields, or zero without one.
@@ -301,7 +308,7 @@ def carry_by_tenor(carry: pd.DataFrame, tenors: pd.DataFrame, first: int, last: 
                          for tenor in range(first, last + 1)})
 
 def cost_of_the_protection(parts: pd.DataFrame, vix: pd.Series, short: bool = False,
-                           tenor_carry: pd.DataFrame = None) -> pd.DataFrame:
+                           tenor_carry: pd.DataFrame = None, footer: dict = None) -> pd.DataFrame:
     """What holding this has cost to carry, over the years and right now.
 
     Carry is what the position earns in a day if the curve does not move: each contract slides one day
@@ -317,7 +324,9 @@ def cost_of_the_protection(parts: pd.DataFrame, vix: pd.Series, short: bool = Fa
     Sold short the position collects that carry instead of paying it, so the extremes swap places and
     are labelled accordingly.
 
-    Ck is the carry of whichever contract stood at tenor k, which says where the cost comes from: it
+    Ck is the carry the position earns at tenor k, signed as it holds the contract rather than as the
+    contract itself carries, so that it reads against Carry_Ann beside it. It says where the cost
+    comes from: it
     decays roughly as one over the tenor, so the front of the curve is where a long position bleeds.
     The two aggregate rows are each column's own average and median, but the extremes and today are the
     day named in the row, so those rows read across as the carry curve on that one day. The position's
@@ -325,6 +334,12 @@ def cost_of_the_protection(parts: pd.DataFrame, vix: pd.Series, short: bool = Fa
     history but one where the curve carries a figure at every tenor and the whole book is inside the
     strip. Where it does not, the book is holding a contract from outside the strip, or a tenor has no
     carry that day, so the columns shown are not the whole of what was held.
+
+    footer holds rows of text keyed by column name, used for the price and the name of the contract at
+    each tenor on the last trade date. They go under the current row rather than over the headings
+    because the contract at a tenor is a different one on every row: the fourth was VXZ12 on the
+    dearest day of this history and VXN20 on the cheapest, and the two aggregate rows span thousands of
+    days, where no contract stands at any tenor at all.
     """
     carry = parts["Carry"] * TRADING_DAYS
     relative = (parts["Carry"] / vix.reindex(parts.index)).dropna() * TRADING_DAYS
@@ -347,6 +362,12 @@ def cost_of_the_protection(parts: pd.DataFrame, vix: pd.Series, short: bool = Fa
     frame = pd.DataFrame(rows).T
     frame["Percentile"] = np.nan
     frame.loc[f"Now ({latest.date()})", "Percentile"] = (relative <= relative.iloc[-1]).mean() * 100
+    if footer:
+        # these belong to the day the row above names, not to the columns: every other row is a
+        # different day, and the two aggregate rows are thousands of them, so they go here
+        frame = frame.map(lambda value: f"{value:.4f}" if pd.notna(value) else "")
+        for label, values in footer.items():
+            frame.loc[label] = [values.get(column, "") for column in frame.columns]
     return frame
 
 def equity_betas(returns: pd.Series, excess_spy: pd.Series, in_points: bool = False) -> pd.DataFrame:
@@ -745,10 +766,20 @@ def report(first: int, last: int, df: pd.DataFrame, prices: pd.DataFrame, vix_cl
                    else f"brought back to the index every {args.rebalance_days} trading days")
         print(f"{side} the contracts {first} to {last} months out, {rolling}, at "
               f"{abs(args.scale):g} times the index, costing {args.cost:g} VIX points a contract")
-    print(f"{len(daily)} trading days from {daily.index[0].date()} to {daily.index[-1].date()}, "
-          f"average maturity {daily['Maturity_Days'].mean():.0f} calendar days, "
-          f"turnover {daily['Turnover'].mean() * TRADING_DAYS:.1f} times a year, "
-          f"traded on {(daily['Turnover'] > 0).mean() * TRADING_DAYS:.0f} days a year")
+    # the span every table uses, which is where the futures, VIX and SPY all have a figure
+    covered = daily.loc[frame.index]
+    print(f"{len(covered)} trading days from {covered.index[0].date()} to {covered.index[-1].date()}, "
+          f"average maturity {covered['Maturity_Days'].mean():.0f} calendar days, "
+          f"turnover {covered['Turnover'].mean() * TRADING_DAYS:.1f} times a year, "
+          f"traded on {(covered['Turnover'] > 0).mean() * TRADING_DAYS:.0f} days a year")
+    # a file running ahead of the futures costs nothing; one running behind cuts the tables short
+    behind = {name: when for name, when in (("VIX", vix_close.index[-1]), ("SPY", spy_prices.index[-1]))
+              if when < daily.index[-1]}
+    if behind and frame.index[-1] < daily.index[-1]:
+        print(f"the futures reach {daily.index[-1].date()} but the tables stop at "
+              f"{frame.index[-1].date()}, because "
+              + " and ".join(f"{name} ends {when.date()}" for name, when in behind.items())
+              + ". Run python xupdate_data.py to bring the price files level")
     # the fund holds one unit of the index long, so the check is of the construction, not of the
     # multiple or the side held: take the scale back out before comparing
     # only a strip a fund holds can be checked, and only when it is rolled the way the index is
@@ -770,13 +801,22 @@ def report(first: int, last: int, df: pd.DataFrame, prices: pd.DataFrame, vix_cl
         parts = split_return(expand_positions(daily), carry, daily["Gross_Return"]).loc[frame.index]
         detail = (position_detail(daily, prices, carry, grid, last)
                   if args.output or args.best_days or args.worst_days else None)
-        # as of the previous close, which is when the position and its carry were both set
-        tenor_carry = carry_by_tenor(carry, grid, first, last).shift(1)
+        # as of the previous close, which is when the position and its carry were both set, and signed
+        # the way the position holds them: sold short, a contract in contango earns its carry
+        tenor_carry = carry_by_tenor(carry, grid, first, last).shift(1) * (np.sign(args.scale) or 1)
         carried = ("what the position earns in carry, and what the curve took back" if short
                    else "what the protection costs to carry, and what the curve paid back")
-        print(f"\n{carried}, annualized; Ck is the carry of the contract at tenor k, and the extreme "
+        # what the curve holds at each tenor on the last trade date, for the rows under the table
+        standing = grid.reindex(parts.index).iloc[-1].dropna()
+        held_now = {int(tenor): expiry for expiry, tenor in standing.items() if first <= tenor <= last}
+        closes = prices.reindex(parts.index).iloc[-1]
+        footer = {"Price now": {f"C{tenor}": f"{closes[expiry]:.4f}" for tenor, expiry in held_now.items()
+                                if pd.notna(closes.get(expiry))},
+                  "Contract now": {f"C{tenor}": contract_symbol(expiry)
+                                   for tenor, expiry in held_now.items()}}
+        print(f"\n{carried}, annualized; Ck is the carry the position earns at tenor k, and the extreme "
               f"and current rows read across as the carry curve on that day\n"
-              f"{cost_of_the_protection(parts, vix_close, short, tenor_carry)}")
+              f"{cost_of_the_protection(parts, vix_close, short, tenor_carry, footer)}")
         by_year = parts.groupby(parts.index.year).sum()
         by_year.index.name = "Year"
         print(f"\ncarry and curve by year, added up day by day rather than compounded\n{by_year.T}")
@@ -945,8 +985,10 @@ def main():
 
     # every file the run will write, checked before the work rather than after it
     for asked in (args.output, args.plot):
+        if not asked:
+            continue
         for path in ([suffixed(asked, *pair) for pair in pairs] if len(pairs) > 1 else [asked]):
-            if path and (problem := unwritable(path)):
+            if problem := unwritable(path):
                 parser.error(problem)
 
     df = read_monthly_contracts(args.data_dir)

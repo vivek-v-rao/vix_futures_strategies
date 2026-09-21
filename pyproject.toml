@@ -35,7 +35,9 @@ examples=["matplotlib","scipy"]
 
 [tool.pytest.ini_options]
 minversion = "7.1.2"
-addopts = "--capture=tee-sys "
+# pytest's own default keeps a passing test quiet and still shows its output when it fails, which
+# --capture=tee-sys did not: it printed every frame the tests build, so a clean run read like a fault
+addopts = ""
 # very important
 #the pythonpath lets pytest load code in your source area
 #in addition to that in site-packages etc.

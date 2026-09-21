@@ -17,6 +17,11 @@ pip install pandas numpy matplotlib
 python xvix_strip.py --plot vix_strip.png
 ```
 
+[vixm_results.txt](vixm_results.txt) is what that command printed when this was published, so you
+can read the whole output, every table below and more, without installing anything. It is written by
+the script that builds this release, from the programs and the csv files in it, so it says what the
+code here says about the data here.
+
 It reads the csv files here and downloads nothing. `python xvix_strip.py -h` lists the options: another
 range of contracts (`--tenors 1 2` is the short term index of VXX), a multiple of the index
 (`--scale`, negative to sell the strip short), how often to rebalance, the trading cost assumed, and
@@ -83,6 +88,18 @@ this was published. To refresh them:
 
 ```
 pip install yfinance
+python xupdate_data.py
+```
+
+That runs all of them: the CBOE futures and index histories through `vixutil`, and the Yahoo Finance
+series below through `xdownload_prices.py`. It prints where each file ended before and after, and says
+so if they do not all end on the same date, which matters because the tables are joined on the dates
+every file has: a stale spot file silently shortens them, and a stale price file is carried forward and
+reads as a day the market did not move. `--dry-run` shows where they stand without downloading.
+
+The individual commands, if you want one of them:
+
+```
 python xdownload_prices.py SPY
 python xdownload_prices.py ^IRX irx.csv
 python xdownload_prices.py VIXM

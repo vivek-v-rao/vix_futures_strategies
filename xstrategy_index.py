@@ -8,14 +8,23 @@ Kept in its own module so that a program can use it without the rest of the back
 import numpy as np
 import pandas as pd
 
-from xread_data import add_returns, expired_rows, price_series
+from xread_data import add_returns, price_series, trading_calendar
 
 def first_unusable_date(df: pd.DataFrame, max_tenor: int):
-    """First trade date on which a contract of tenor <= max_tenor has not expired (so its last close
-    is unknown), or None. Tenor 1 is the contract nearest to expiration on each trade date."""
+    """First trade date on which a contract of tenor <= max_tenor cannot be dated, or None.
+
+    A contract is usable once the trading days to its expiry can be counted. That used to mean waiting
+    for it to settle, which cut the end off every backtest, one expiry for each tenor held, so a strip
+    of the fourth to seventh contracts stopped seven months before the data did. An expiry is fixed by
+    exchange rule and published years ahead, so the count comes from the calendar and a contract still
+    trading is as usable as a settled one. This now finds a date only where the calendar runs out.
+
+    Tenor 1 is the contract nearest to expiration on each trade date.
+    """
     a = df.sort_values(["Trade Date", "Expiry"])
     tenor = a.groupby("Trade Date").cumcount() + 1
-    dates = a.loc[(tenor <= max_tenor) & ~expired_rows(a), "Trade Date"]
+    undated = ~a["Expiry"].isin(trading_calendar(a["Trade Date"]))
+    dates = a.loc[(tenor <= max_tenor) & undated, "Trade Date"]
     return dates.min() if len(dates) else None
 
 def sp_roll_fraction(c: pd.DataFrame) -> pd.Series:
