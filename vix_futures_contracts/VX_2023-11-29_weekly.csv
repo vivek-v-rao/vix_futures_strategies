@@ -1,0 +1,5 @@
+Trade Date,Weekly,Tenor_Monthly,Tenor_Days,Tenor_Trade_Days,Expiry,Open,High,Low,Close,Settle,Change,Total Volume,EFP,Open Interest,Year,MonthOfYear,Futures,File,Expired
+2023-11-09,True,2.0,20,13.0,2023-11-29,16.4,16.4,16.05,16.4,16.525,0.75,1,0,1,2023,11,X (Nov 2023),2023-11-29.w_.CFE_VX_2023.csv,True
+2023-11-15,True,2.0,14,9.0,2023-11-29,14.8,14.8,14.8,14.8,14.95,-0.1,10,0,11,2023,11,X (Nov 2023),2023-11-29.w_.CFE_VX_2023.csv,True
+2023-11-27,True,1.0,2,2.0,2023-11-29,13.6,13.6,13.0,13.6,12.85,-0.35,1,0,11,2023,11,X (Nov 2023),2023-11-29.w_.CFE_VX_2023.csv,True
+2023-11-29,True,1.0,0,0.0,2023-11-29,,,,12.59,12.59,-0.11,0,0,11,2023,11,X (Nov 2023),2023-11-29.w_.CFE_VX_2023.csv,True
