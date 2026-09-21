@@ -356,26 +356,22 @@ def vix_constant_maturity_weights(vix_calendar : pd.DataFrame, start_date : str|
     df_foo[ttr] = df_foo.index.to_series()
     #    temp_tdts="Temporary Tenor_Days"
     #    df_foo[temp_tdts]=df_foo[tdts]
-    ll = len(df_foo)
+    # the whole exchange calendar, which is what trading days are counted on.  df_foo may have been
+    # cut down to a date range, so a position in it counts a different thing: taking the position from
+    # the calendar and then reading it out of the cut down frame put every row past the end, and every
+    # call that passed a start or end date came back empty.
+    calendar_dates = trade_days_to_settle.index
 
     def maturity_date(row):
         # Use the trade date X trade days later, where X is the current roll period
         # in trade days.
-        trade_date = row[ttr]
         try:
-            row_roll_period_trade_days = row[rptd]  # trade_days_to_settle[trade_date]
-            trade_date_loc = trade_days_to_settle.index.get_loc(trade_date)
-            trade_date_loc_end_of_roll = trade_date_loc + row_roll_period_trade_days
-            trade_date_loc_end_of_roll_capped = np.nan if trade_date_loc_end_of_roll > ll else \
-                trade_date_loc_end_of_roll
-            trade_date_end_of_roll = df_foo.iloc[trade_date_loc_end_of_roll_capped].at[ttr]
-            return trade_date_end_of_roll
-        except Exception as e:
-            pass
-            #we are always going to get some of these at the end, since the dates go past the dates
-            #in the data frames.  they need to be filtered out after.
-            # print(f"Error {e} on row {row}")
-        return pd.NaT
+            trade_date_loc_end_of_roll = calendar_dates.get_loc(row[ttr]) + row[rptd]
+        except KeyError:
+            return pd.NaT
+        #the last rows run off the end of the calendar, and are dropped below.
+        return calendar_dates[trade_date_loc_end_of_roll] \
+            if 0 <= trade_date_loc_end_of_roll < len(calendar_dates) else pd.NaT
 
     constant_maturity_dates = df_foo.apply(maturity_date, axis=1, result_type='expand')
     #remove the NaTs.
