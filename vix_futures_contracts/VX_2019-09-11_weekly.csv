@@ -1,0 +1,5 @@
+Trade Date,Weekly,Tenor_Monthly,Tenor_Days,Tenor_Trade_Days,Expiry,Open,High,Low,Close,Settle,Change,Total Volume,EFP,Open Interest,Year,MonthOfYear,Futures,File,Expired
+2019-08-30,True,1.0,12,7.0,2019-09-11,18.8,18.95,18.1,18.8,18.975,0.525,1,0,1,2019,9,U (Sep 2019),2019-09-11.w_.CFE_VX_2019.csv,True
+2019-09-09,True,1.0,2,2.0,2019-09-11,15.95,16.0,15.6,15.95,15.65,-0.275,2,0,3,2019,9,U (Sep 2019),2019-09-11.w_.CFE_VX_2019.csv,True
+2019-09-10,True,1.0,1,1.0,2019-09-11,16.4,16.4,15.6,16.4,15.375,-0.275,5,0,8,2019,9,U (Sep 2019),2019-09-11.w_.CFE_VX_2019.csv,True
+2019-09-11,True,1.0,0,0.0,2019-09-11,,,,15.27,15.27,-0.105,0,0,8,2019,9,U (Sep 2019),2019-09-11.w_.CFE_VX_2019.csv,True
