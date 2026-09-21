@@ -1,0 +1,4 @@
+Trade Date,Weekly,Tenor_Monthly,Tenor_Days,Tenor_Trade_Days,Expiry,Open,High,Low,Close,Settle,Change,Total Volume,EFP,Open Interest,Year,MonthOfYear,Futures,File,Expired
+2026-02-20,True,1.0,18,13.0,2026-03-11,20.3,20.3,20.3,20.3,20.2231,-0.53,2,0,2,2026,3,H (Mar 2026),2026-03-11.w_.CFE_VX_2026.csv,True
+2026-03-02,True,1.0,8,7.0,2026-03-11,20.0,20.0,20.0,20.0,20.932,0.2959,2,0,2,2026,3,H (Mar 2026),2026-03-11.w_.CFE_VX_2026.csv,True
+2026-03-11,True,1.0,0,0.0,2026-03-11,,,,24.88,24.88,-0.2153,0,0,2,2026,3,H (Mar 2026),2026-03-11.w_.CFE_VX_2026.csv,True
