@@ -18,15 +18,26 @@ def vix_dates():
     return vu.vix_futures_dates.vix_futures_trade_dates_and_expiry_dates()
 
 def test_small_date_range():
-   with pd.option_context('display.max_rows',None,'display.max_columns',None):
-    vix_calendar=vu.vix_futures_dates.cfe_exchange_open_dates()
-    test_dates=('2024-03-15','2024-04-30')
-    dates_for_weights   = _vix_futures_trade_dates_and_expiry_dates_for_dates(vix_calendar)
+    '''Asking for a date range must give the same weights as asking for everything and slicing it.
 
-    print(f"dates testing in april:\n{test_dates}\ndates_for_weights:\n{dates_for_weights}\n")
+    Limiting the range is only meant to save work, so the answer cannot depend on it.  It used to:
+    the row's position was taken from the whole exchange calendar and then read out of the frame the
+    range had cut down, which put every row past the end, so every call that passed a date came back
+    empty.  This test printed that empty frame and passed, having nothing to assert.
+    '''
+    vix_calendar = vu.vix_futures_dates.cfe_exchange_open_dates()
+    start, end = '2024-03-15', '2024-04-30'
+    dates_for_weights = _vix_futures_trade_dates_and_expiry_dates_for_dates(vix_calendar)
 
-    weights=vix_constant_maturity_weights(dates_for_weights,*test_dates)
-    print(f"Weights:\n{weights}")
+    weights = vix_constant_maturity_weights(dates_for_weights, start, end)
+    expected = vix_constant_maturity_weights(dates_for_weights).loc[start:end]
+
+    assert not weights.empty, "asking for a date range returned nothing"
+    assert weights.index.min() >= pd.Timestamp(start)
+    assert weights.index.max() <= pd.Timestamp(end)
+    assert weights.index.equals(expected.index), "the range gave different trade dates"
+    for column in ("Front Month Weight", "Next Month Weight", "T1W", "T2W", "T3W"):
+        pd.testing.assert_series_equal(weights[column], expected[column])
 
 
 
