@@ -1,113 +1,27 @@
-# VIX futures strategies
+# VIX Utils
 
-Programs for studying VIX futures strategies, together with the CBOE data they read: everything here
-runs on the csv files in this repository and downloads nothing. The data, and the tools that gather and
-update it, are `vix_utils`, a fork of [dougransom/vix_utils](https://github.com/dougransom/vix_utils),
-described under Overview below.
+This project is a fork of [dougransom/vix_utils](https://github.com/dougransom/vix_utils).
 
-## Holding a strip: `xvix_strip.py`
+## Additions in this fork
 
-What holding a strip of VIX futures has done, long or short. A strip is a run of consecutive contracts
-held together, with a fraction of the nearest rolled into the furthest every trading day, which is how
-the S&P VIX futures indexes are built; the default is the mid term one that VIXM tracks, the contracts
-four to seven months out.
-
-```
-pip install pandas numpy matplotlib
-python xvix_strip.py --plot vix_strip.png
-```
-
-[vixm_results.txt](vixm_results.txt) is what that command printed when this was published, so you
-can read the whole output, every table below and more, without installing anything. It is written by
-the script that builds this release, from the programs and the csv files in it, so it says what the
-code here says about the data here.
-
-It reads the csv files here and downloads nothing. `python xvix_strip.py -h` lists the options: another
-range of contracts (`--tenors 1 2` is the short term index of VXX), a multiple of the index
-(`--scale`, negative to sell the strip short), how often to rebalance, the trading cost assumed, and
-where to write the daily results.
-
-Rolling a little of the position every day is what a fund does. Somebody holding a handful of
-contracts cannot, so `--rebalance-days 5` rolls weekly instead, and `--single-contract` holds one
-contract and rolls it once a month on the settlement day, which is one trade a month and no fractions
-of a position. `--tenors 2 2` is the same thing said the other way: one tenor leaves nothing to roll
-into, so the position only changes when the front settles and the contract behind it moves up.
-
-Either tenor may be a range, which runs the positions one after another and prints the whole report
-for each. `--tenors 1:3 1:3` runs the six from 1-1 to 3-3, `--single-contract 1:6` runs each of the
-six contracts held alone, and the two add together, with a position named both ways running once.
-`--widths` keeps only the strips holding a given number of contracts, as one number or a range, which
-is what keeps a wide sweep short enough to read: with `--tenors 1:9 1:9` it cuts 45 positions to 24,
-dropping the wide strips, which overlap so heavily that they mostly restate each other. It prunes what
-`--tenors` generates and leaves contracts named by `--single-contract` alone.
-
-A sweep puts the tenors into the names of any files `--plot` and `--output` ask for. Each position is
-measured over whatever history its own contracts reach back to, which is not the same span for all of
-them, so read the dates under each heading before reading one position against another.
-
-### What it reports
-
-- **What it holds**, with the average maturity it actually held, and how closely it matched the fund
-  that holds the same strip, where one does: daily returns correlate 0.94 with VIXM for the 4-7 strip
-  and 0.93 with VXX for the 1-2 strip, with differences near those funds' fees, which says the
-  construction is right. No fund holds the other strips, so there is nothing to check those against.
-- **What it did on its own**: it loses money, at about 16% a year over 2006 to 2026, with a drawdown
-  of 98%. Holding volatility long means paying the risk premium that shorting it earns.
-- **What the protection costs to carry**, on average and right now, against its own history. Carry is
-  what the position earns in a day if the curve does not move, so held long it is the price of the
-  insurance; the rest of the return is the curve moving, which is the payout. Over this history a
-  dearer carry has not bought a larger payout, so read the current figure as a cost, not a signal.
-- **What it did against equities**: a beta to SPY of about -1.2, and more on the days SPY fell (-1.3)
-  than on the days it rose (-0.8), which is the shape a hedge is supposed to have.
-- **What a slice of it did for a portfolio**: SPY held in full with, say, a tenth of it on top, which
-  over this sample cut the worst month from -33% to -28% and the drawdown from -55% to -48% while
-  leaving the Sharpe ratio where it was. Futures need no capital, so the slice is added to a full
-  holding of SPY rather than funded by selling part of it.
-- **What happens when the slice varies with VIX**: SPY's own volatility rises roughly one for one with
-  VIX while this position's rises about half as fast, so a fixed slice covers less and less equity
-  risk as VIX rises, and holding the hedge ratio steady takes a slice proportional to the square root
-  of VIX. Scaling faster than that is a bet on crises repeating, not a risk adjustment.
-
-### What to keep in mind
-
-The case for holding a slice rests on 2008 and 2020. Without those two years it is a steady drag, and
-twenty years of data contain only two real tests of it. The numbers are a backtest on daily settlement
-prices with an assumed trading cost, they charge nothing for the margin the position ties up, and they
-are not advice.
-
-The data are CBOE's, in `vix_futures_contracts` (one file per futures contract) and `vix_spot`; SPY,
-the bill yields in `irx.csv` and the fund's prices come from Yahoo Finance through
-`xdownload_prices.py`, the only program here that uses the network. Both are described below, with how
-to bring them up to date.
-
-## Updating the prices from Yahoo Finance
-
-`spy.csv`, `irx.csv` (13 week Treasury bill yields) and the funds' own prices in `vixm.csv` and
-`vxx.csv` are snapshots taken when
-this was published. To refresh them:
-
-```
-pip install yfinance
-python xupdate_data.py
-```
-
-That runs all of them: the CBOE futures and index histories through `vixutil`, and the Yahoo Finance
-series below through `xdownload_prices.py`. It prints where each file ended before and after, and says
-so if they do not all end on the same date, which matters because the tables are joined on the dates
-every file has: a stale spot file silently shortens them, and a stale price file is carried forward and
-reads as a day the market did not move. `--dry-run` shows where they stand without downloading.
-
-The individual commands, if you want one of them:
-
-```
-python xdownload_prices.py SPY
-python xdownload_prices.py ^IRX irx.csv
-python xdownload_prices.py VIXM
-python xdownload_prices.py VXX
-```
-
-Use the `Adj Close` column, as the programs here do: VIXM had a reverse split in 2021, so its
-unadjusted closes are not comparable across it.
+- **One CSV file per futures contract.** `vixutil --contracts <output_dir>` writes the daily history of every VIX futures
+  contract, weekly and monthly expiries, to its own file named `VX_<expiry>_monthly.csv` or `VX_<expiry>_weekly.csv`.
+  The same thing is available from Python as `vix_utils.write_futures_contracts_csv(records, out_dir)`, where `records`
+  is the DataFrame returned by `load_vix_term_structure()`. Rows are sorted by trade date and prices are rounded to 4 decimals.
+- **Faster `vixutil` runs.** When only `--contracts` is requested, `vixutil` no longer downloads the VIX cash index histories
+  or builds the other term structure outputs.
+- **Scripts for analysis and trading research**, described below: `xcontract_stats.py` (statistics and regressions),
+  `xtrade_carry.py` (backtested trading strategies), `xwrite_curve.py` (the whole curve as one csv) and
+  `xdownload_prices.py` (Yahoo Finance prices). They read only the csv files in this repository and download nothing.
+- **Fixes to the underlying package:**
+  - Prices on 2007-03-26 were being divided by 10 a second time. CBOE's files are already on the new scale that day,
+    so only prices *before* it are rescaled now.
+  - Contracts whose data stops before expiry (July and October 2004) are treated as expired.
+  - The settlement-day row of contracts expiring before 2015 is kept. CBOE recorded open, high, low and close as 0 that
+    day and filled in only the settlement price, so those rows were being dropped and each contract lost its final value.
+    The settlement price is now used as that day's close, with the other prices left empty, for contracts that had open
+    interest or volume. This restored 123 rows.
+  - Three pandas deprecation warnings.
 
 ## Data directory `vix_futures_contracts`
 
@@ -137,6 +51,97 @@ VVIX, GVZ, OVX, SHORTVOL, LONGVOL, VXTLT (close only), each starting when CBOE b
 VIX closes are taken at 4:15 pm ET, which is later than the VIX futures settlement prices are determined.
 `read_vix_indexes()` in `xread_data.py` loads it as a table of closes with one column per symbol.
 
+## Analysis scripts
+
+These four scripts sit at the top of the repository and need only pandas, with statsmodels for the regressions and
+yfinance for the downloader. Each takes `-h` for help.
+
+### `xcontract_stats.py` — statistics, regressions and fitted models
+
+Reads the monthly contract files into one DataFrame and reports on them. Nothing is downloaded. Run
+with no arguments it prints the ten tables that describe the contracts.
+
+**[MODELS.md](MODELS.md) gives the formula behind every model below, how each is estimated, and what
+the quantities mean.** It deliberately carries no fitted numbers: those depend on the sample, and the
+sample matters here — the correlation across the curve is materially flatter since 2018 than before.
+Use `--min-date` and `--max-date` to fit a window and read the numbers off your own run.
+
+- `--summary` — one row per contract: days of data, first and last trade dates, and first, last, high and low closes.
+- `--return-stats` — daily return statistics by trading days until a contract's last close: count, median, mean, standard
+  deviation, annualized Sharpe ratio, skew, excess kurtosis, minimum and maximum. `--buckets 1 20` prints one table per
+  bucket width, `--max-days` limits the horizon, `--log-returns` switches to log returns.
+- `--carry-regression` — regresses each day's return on the previous day's carry per day, for the front contract against
+  spot VIX and for later contracts against the next one closer to expiration. Standard errors are clustered by trade
+  date, with Driscoll-Kraay (`--hac-lags`) as a check; `--winsorize` clips the return tails.
+- `--term-regressions` — regresses each contract's price on the price of the contract closer to expiration (the front
+  contract on spot VIX), in levels, logs or daily changes, with the square root of days to expiry as an optional term.
+  The `t_Slope_1` column tests whether the slope is 1.
+
+Volatility, fitted:
+
+- `--vol-decay` — how the spread of a day's return grows as expiration approaches, as a power law, an
+  exponential and a shifted power, with the fall in carry fitted in the same shapes beside it.
+- `--cev` — the size of a move against the level it moved from and the days it has left, as a power
+  of the level and as a displacement from a floor, fitted pooled and within each day; `--rising-floor`
+  lets the floor grow with maturity.
+- `--riskmetrics` — whether the size of a move still clusters in time once level and maturity are
+  accounted for; `--rm-lambda` sweeps the memory and `--rm-split` divides fitting from scoring.
+- `--asymmetry` — whether an up move leaves the next day livelier than a down move of the same size.
+- `--innovations` — which distribution the moves came from once divided by the size expected of them:
+  normal, Student *t*, or Hansen's skewed *t*. `--skew-by-level` cuts the tilt by price.
+- `--slope` — whether a flatter curve means livelier futures, over `--slope-steps` of the curve.
+- `--vvix` — whether the implied volatility of VIX says anything the price of the future does not.
+
+Correlation:
+
+- `--correlations` — the plain correlation matrix of daily returns: SPY, spot VIX, and the curve.
+- `--corr-decay` — that matrix as a model, correlation declining in the trading days between two
+  expirations, which a pair keeps as it rolls, with the maturity effect fitted five ways.
+- `--corr-ewma` — a decayed correlation scored against those shapes and against two ways of mixing
+  the two, on days none of them were fitted on; `--corr-decays` sets the memories tried.
+- `--pair-matrix` — the realized correlations of named contracts over the days they actually shared,
+  with the days behind every cell beside them. `--pair-contracts VXF27 VXG27` names them.
+
+Every option takes an optional file name to also write the table as csv. `--min-date` and `--max-date`
+narrow the window before anything is computed, `--terse` names each table without reading it, and
+`--notime` suppresses the timing table each run ends with.
+
+### `xtrade_carry.py` — backtests
+
+**[STRATEGIES.md](STRATEGIES.md) describes each strategy, gives the command that runs it, and compares their historical
+performance on one footing, with the caveats that go with backtests.**
+
+The strategies below share one set of machinery: trade lag, volatility targeting, no-trade bands, trading costs, an optional SPY
+hedge (`--hedge-window`, `--hedge-scale`), performance statistics, results by year, and beta to SPY. `--backtest out.csv`
+writes the daily results.
+
+- `--strategy carry` (default) — expected return of each contract is a walk-forward regression slope times its carry,
+  sized by risk over the tenors in `--tenors`, with a regime filter for an inverted curve.
+- `--strategy basis` — the rule of Simon and Campasano (2014): trade the nearest contract when its basis per day passes
+  `--threshold`, hedged with SPY.
+- `--strategy benchmark` — a constant maturity position with no signal (`--target-days`, `--side`), interpolated between
+  the two contracts that bracket the target. The yardstick for the rest.
+- `--strategy index` — an S&P style index that holds `--index-tenors FIRST LAST` and rolls the first into the last a
+  little each day, the construction the volatility ETPs track: `1 2` is the short term index of VXX and `4 7` the mid
+  term index of VIXM. `--scale` takes the signed multiple held, rebalanced daily as the products are, so 1.5 is UVXY,
+  −0.5 today's SVXY and −1 the XIV note. Daily returns correlate 0.93 with VXX, 0.94 with VIXM, 0.99 with UVXY and 0.98
+  with SVXY.
+- `--strategy slope` — a level neutral calendar spread on the term structure slope, after Johnson (2017), either timed by
+  the slope score or held constantly (`--slope-timing`).
+- `--strategy vrp` — short volatility when VIX is above realized S&P volatility over `--rv-window` days, long when below.
+- `--strategy residual` — sell contracts that are rich against a curve fitted to each day's prices and buy the cheap ones.
+
+### `xwrite_curve.py` — the curve as one csv
+
+Writes one row per trade date with the CBOE volatility indexes, SPY, and by tenor the futures prices, calendar and
+trading days to expiry, contract symbols (VXU26) and roll adjusted returns, with carry under `--carry`. Intended for use
+outside Python, and for seeing the curve and its rolls in one place.
+
+### `xdownload_prices.py` — Yahoo Finance prices
+
+`python xdownload_prices.py SPY` writes `spy.csv`, the only script here that reaches the network. The SPY history in this
+repository was written by it and is used for the beta calculations, the hedges and the variance risk premium.
+
 ## Overview
 
 *vix_utils* provides some tools for preparing data for analysing  the VIX Futures and Cash Term structures.
@@ -159,6 +164,8 @@ rather than get_vix_index_histories and load_vix_term_structure.  There is an ex
 If you do your analysis in other tools such as R or excel, you can use the command line tool vixutil.
 
 `vixutil -h` will give the help.  The data are availble in record and wide formats.  Just run it and look at the excel or csv output to see what they look like.
+
+ 
 
 ## Installation
 
@@ -183,10 +190,24 @@ To load the sample Jupyter notebook, run vix_sample_load_data to figure out wher
 
 ### Development 
 
-Clone from  [github repository](https://github.com/vivek-v-rao/vix_futures_strategies).
+Clone from  [github repository](https://github.com/vivek-v-rao/vix_utils).
 
  
 `pip install -e .[test,examples]` will:
 - install vix_utils into your python environment, including any command line scripts. 
 - install the necessary prequisites for running any 
 tests in the `test` folder, and for running the programs in the `src/vixutils/examples` folder.
+
+## Examples
+Source is in `src/vix_utils/examples`
+ 
+~~~
+## Data Notes
+These dates appear to be missing from the CBOE Data.
+At some point they need to be patched in if they exist.
+```
+[Timestamp('2006-11-10 00:00:00'), Timestamp('2007-01-03 00:00:00'), Timestamp('2021-04-02 00:00:00'), Timestamp('2021-12-24 00:00:00')]
+```
+There seem to be  a few dates where spot indexes are missing, you will have to workaround by using fill feature of Pandas datafame, or skip those days, in any analysis.
+~~~
+
