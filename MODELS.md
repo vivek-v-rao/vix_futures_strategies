@@ -66,7 +66,7 @@ is the part of a return that can be seen in advance: the price of the insurance 
 premium collected for a short.
 
 **Beta to VIX.** The points a contract moves per point spot VIX moves,
-$\operatorname{cov}(r, \Delta\text{VIX}) / \operatorname{var}(\Delta\text{VIX})$ — the number to size
+$\mathrm{cov}(r, \Delta\text{VIX}) / \mathrm{var}(\Delta\text{VIX})$ — the number to size
 a hedge with. It falls along the curve, as carry does.
 
 **Premium and contango share.** A tenor's average distance above spot in points and as a share of
