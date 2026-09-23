@@ -128,8 +128,8 @@ constant-elasticity fit to displaced data recovers roughly that elasticity at th
 sample and is wrong at both ends, which is why the two are reported side by side.
 
 **Pooled against within-day.** Each shape is fitted twice. *Pooled* asks whether every contract is
-livelier when VIX is high, which is the question a forecast asks. *Within day* takes each trade
-date's mean out first and asks whether the dearer contract is the livelier one on the same day,
+more volatile when VIX is high, which is the question a forecast asks. *Within day* takes each trade
+date's mean out first and asks whether the dearer contract is the more volatile one on the same day,
 which is a question about the curve's shape. They need not agree, and reading a pooled elasticity as
 if it were a statement about the curve is the trap the two rows exist to prevent.
 
@@ -165,8 +165,8 @@ Implemented in `riskmetrics_factor`, `clustering`, `riskmetrics_forecasts`.
 
 ### Asymmetry (`--asymmetry`)
 
-Whether an up move leaves tomorrow livelier than a down move of the same size — the reverse of the
-equity leverage effect, VIX futures being lively when VIX rises. Both the size and the sign of
+Whether an up move leaves tomorrow more volatile than a down move of the same size — the reverse of the
+equity leverage effect, VIX futures being volatile when VIX rises. Both the size and the sign of
 yesterday's market move enter the scale regression:
 
 $$
@@ -218,7 +218,7 @@ Implemented in `skewed_t_logpdf`, `standardized_moves`, `innovation_fits`, `skew
 
 ### Curve slope (`--slope`)
 
-Whether a flat or backwardated curve means livelier futures. Slope over $n$ steps, in logs per step:
+Whether a flat or backwardated curve means more volatile futures. Slope over $n$ steps, in logs per step:
 
 $$
 S_n = \frac{1}{n}\log\frac{F_n}{\text{VIX}}
